@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cut" />
+  <title>파티챗</title>
+  <meta name="description" content="여럿이 함께 즐기는 AI 롤플레이 파티챗" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- 입장 화면 -->
+  <main id="join-screen" class="join">
+    <form id="join-form" class="join-card" autocomplete="off">
+      <h1>파티챗</h1>
+      <p class="sub">같은 방 비밀번호를 입력한 사람끼리 함께 이야기를 만들어요.</p>
+      <label id="access-field" hidden>
+        <span>입장 비밀번호</span>
+        <input id="j-access" type="password" placeholder="서버 관리자가 정한 비밀번호" />
+      </label>
+      <label>
+        <span>방 비밀번호</span>
+        <input id="j-room" type="password" minlength="4" maxlength="64" required placeholder="4자 이상 · 친구들과 똑같이 입력" />
+      </label>
+      <label>
+        <span>닉네임</span>
+        <input id="j-name" maxlength="20" required placeholder="예: 민수" />
+      </label>
+      <label>
+        <span>내 캐릭터 <small>(선택)</small></span>
+        <textarea id="j-persona" maxlength="600" rows="3" placeholder="예: 아렌 — 몰락한 왕국의 젊은 기사. 말수가 적고 검술에 능함."></textarea>
+      </label>
+      <p id="join-error" class="error" role="alert"></p>
+      <button type="submit" class="primary" id="join-btn">입장하기</button>
+      <p class="hint">처음 들어온 사람이 방장이 되어 세계관 · 모델 · 출력량을 정해요.</p>
+    </form>
+  </main>
+
+  <!-- 방 화면 -->
+  <div id="room-screen" class="room" hidden>
+    <header class="topbar">
+      <div class="title-wrap">
+        <h1 id="room-title">파티챗</h1>
+        <span id="room-meta" class="meta"></span>
+      </div>
+      <nav class="tabs-btns">
+        <button data-panel="party" class="icon-btn" title="파티원">파티 <b id="party-count">0</b></button>
+        <button data-panel="settings" class="icon-btn" title="설정">설정</button>
+        <button data-panel="chat" class="icon-btn" title="잡담">잡담 <b id="chat-badge" hidden>●</b></button>
+        <button data-panel="records" class="icon-btn" title="기록">기록</button>
+      </nav>
+    </header>
+
+    <div class="body">
+      <section id="feed" class="feed" aria-live="polite"></section>
+
+      <aside id="panel" class="panel" hidden>
+        <div class="panel-head">
+          <h2 id="panel-title"></h2>
+          <button id="panel-close" class="icon-btn" aria-label="닫기">닫기</button>
+        </div>
+
+        <div data-pane="party" class="pane">
+          <ul id="member-list" class="member-list"></ul>
+          <h3>내 프로필</h3>
+          <form id="profile-form" class="stack">
+            <input id="p-name" maxlength="20" placeholder="닉네임" />
+            <textarea id="p-persona" maxlength="600" rows="4" placeholder="내 캐릭터 설명"></textarea>
+            <button type="submit">프로필 저장</button>
+          </form>
+        </div>
+
+        <div data-pane="settings" class="pane">
+          <p id="settings-readonly" class="hint" hidden>방장만 설정을 바꿀 수 있어요.</p>
+          <form id="settings-form" class="stack">
+            <label><span>방 제목</span><input name="title" maxlength="40" /></label>
+            <label><span>세계관 · 캐릭터 프롬프트</span>
+              <textarea name="systemPrompt" rows="10" maxlength="30000" placeholder="세계관, 등장인물(NPC), 말투, 분위기, 규칙 등을 자유롭게 적어 주세요."></textarea>
+            </label>
+            <label><span>오프닝 장면 <small>(선택)</small></span>
+              <textarea name="opening" rows="5" maxlength="12000" placeholder="이야기의 첫 장면. 비워 두면 첫 턴부터 AI가 시작해요."></textarea>
+            </label>
+            <label><span>기억 메모 <small>(AI가 항상 기억할 내용)</small></span>
+              <textarea name="memo" rows="4" maxlength="8000" placeholder="예: 리나는 아렌의 정체를 아직 모름. 2턴에서 은빛 열쇠를 얻음."></textarea>
+            </label>
+            <div class="grid2">
+              <label><span>모델</span><select name="model"></select></label>
+              <label><span>출력량</span><select name="length"></select></label>
+              <label><span>생각 깊이</span><select name="effort"></select></label>
+              <label><span>진행 방식</span>
+                <select name="mode">
+                  <option value="all">전원 제출 시 자동 진행</option>
+                  <option value="host">방장이 진행 버튼으로</option>
+                </select>
+              </label>
+              <label><span>최대 인원</span>
+                <select name="maxPlayers">
+                  <option>2</option><option>3</option><option>4</option><option>5</option>
+                </select>
+              </label>
+              <label><span>기억할 턴 수</span>
+                <select name="historyTurns">
+                  <option value="0">전체</option>
+                  <option value="10">최근 10턴</option>
+                  <option value="20">최근 20턴</option>
+                  <option value="40">최근 40턴</option>
+                  <option value="80">최근 80턴</option>
+                </select>
+              </label>
+            </div>
+            <p class="hint">기억할 턴 수를 줄이면 비용이 줄지만, 오래된 내용은 기억 메모에 적어 두어야 해요.</p>
+            <button type="submit" class="primary" id="settings-save">설정 저장</button>
+          </form>
+        </div>
+
+        <div data-pane="chat" class="pane chat-pane">
+          <p class="hint">AI에게 전달되지 않는 파티원끼리의 잡담이에요.</p>
+          <ul id="ooc-list" class="ooc-list"></ul>
+          <form id="ooc-form" class="row">
+            <input id="ooc-input" maxlength="500" placeholder="잡담 입력" />
+            <button type="submit">보내기</button>
+          </form>
+        </div>
+
+        <div data-pane="records" class="pane stack">
+          <button id="export-json">이야기 저장 (.json, 불러오기용)</button>
+          <button id="export-txt">이야기 텍스트로 저장 (.txt)</button>
+          <label class="file-btn host-only">
+            <span>저장한 이야기 불러오기 (.json)</span>
+            <input id="import-file" type="file" accept="application/json,.json" />
+          </label>
+          <button id="reset-btn" class="danger host-only">이야기 처음부터 다시 시작</button>
+          <p class="hint">서버가 재시작되면 방 기록이 사라질 수 있어요. 기록은 이 기기에도 자동으로 백업되고, 같은 방에 다시 들어오면 방장이 복원할 수 있어요.</p>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="composer">
+      <div id="restore-banner" class="banner" hidden>
+        <span>이 기기에 이 방의 이전 이야기 백업이 있어요.</span>
+        <button id="restore-yes" class="primary">복원</button>
+        <button id="restore-no">무시</button>
+      </div>
+      <div id="party-status" class="party-status"></div>
+      <div id="host-tools" class="host-tools" hidden>
+        <button id="advance-btn" class="primary">▶ 진행</button>
+        <button id="regen-btn">↻ 다시 쓰기</button>
+        <button id="undo-btn">↶ 되돌리기</button>
+        <button id="stop-btn" class="danger" hidden>■ 중지</button>
+      </div>
+      <form id="action-form" class="action-form">
+        <textarea id="action-input" rows="2" maxlength="2000" placeholder="내 캐릭터의 행동이나 대사를 입력하세요"></textarea>
+        <div class="action-btns">
+          <button type="submit" class="primary" id="submit-btn">제출</button>
+          <button type="button" id="pass-btn">스킵</button>
+          <button type="button" id="unsubmit-btn" hidden>제출 취소</button>
+        </div>
+      </form>
+      <p id="status-line" class="status-line"></p>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>

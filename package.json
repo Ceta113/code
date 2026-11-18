@@ -1,0 +1,19 @@
+{
+  "name": "party-chat",
+  "version": "1.0.0",
+  "description": "여럿이 함께 즐기는 AI 롤플레이 파티챗 (Claude)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "MOCK_AI=1 node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
+    "express": "^5.1.0",
+    "ws": "^8.18.0"
+  }
+}
