@@ -262,11 +262,15 @@ function buildMessages(room, inputs) {
 // ---------------------------------------------------------------- AI 생성
 
 async function* mockStream(inputs) {
+  const acts = inputs.filter((i) => i.text).map((i) => i.name);
   const text =
-    `(테스트 모드 응답) ${inputs.map((i) => `${i.name}의 행동 "${i.text || "지켜보기"}"`).join(", ")}에 ` +
-    "세계가 반응합니다. 바람이 불고, 멀리서 종소리가 울려 퍼집니다. 파티원들은 서로를 바라보며 다음 행동을 고민합니다.";
+    `(테스트 모드) ${acts.length ? acts.join("와 ") + "의 움직임에" : "고요 속에서"} 낡은 문이 낮게 삐걱였다. ` +
+    "안개가 발목을 휘감고, 멀리서 종소리가 한 번 울려 퍼진다.\n\n" +
+    "문틈 사이로 희미한 빛이 새어 나오자, 안쪽에서 쉰 목소리가 들려왔다.\n\n" +
+    "\"이 시간에 손님이라니… 길을 잃은 건가, 아니면 일부러 찾아온 건가?\"\n\n" +
+    "*등불을 든 노인이 천천히 모습을 드러낸다.* 그의 눈이 파티원들을 하나하나 훑는다.";
   for (const ch of text.match(/.{1,6}/gsu)) {
-    await new Promise((r) => setTimeout(r, 30));
+    await new Promise((r) => setTimeout(r, 25));
     yield ch;
   }
 }

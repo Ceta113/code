@@ -1,11 +1,17 @@
 "use strict";
 
-// ------------------------------------------------------------ 저장소 (실패해도 동작)
+// ------------------------------------------------------------ 기본 도구
 const store = {
   get(k, area = localStorage) { try { return area.getItem(k); } catch { return null; } },
   set(k, v, area = localStorage) { try { area.setItem(k, v); return true; } catch { return false; } },
-  del(k, area = localStorage) { try { area.removeItem(k); } catch {} },
 };
+const $ = (id) => document.getElementById(id);
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
 
 function makeToken() {
   const a = new Uint8Array(16);
@@ -18,33 +24,68 @@ if (!token || !/^[a-f0-9]{32}$/.test(token)) {
   store.set("pc-token", token);
 }
 
-const $ = (id) => document.getElementById(id);
-const el = (tag, cls, text) => {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text != null) e.textContent = text;
-  return e;
-};
+// 이름마다 고정된 색
+const PALETTE = ["#ff8a5c", "#ffd166", "#7bdff2", "#c8b6ff", "#80ed99", "#f4a261", "#ff99c8", "#a0c4ff", "#90be6d", "#f7b7a3", "#e9c46a", "#b8f2e6"];
+function colorOf(name) {
+  let h = 0;
+  for (const ch of String(name)) h = (h * 31 + ch.codePointAt(0)) >>> 0;
+  return PALETTE[h % PALETTE.length];
+}
+function avatar(name, size = 36, status) {
+  const a = el("span", "avatar", [...String(name || "?")][0]);
+  a.style.setProperty("--c", colorOf(name));
+  a.style.setProperty("--s", size + "px");
+  a.setAttribute("aria-hidden", "true");
+  if (status) a.append(el("i", "st " + status));
+  return a;
+}
+function gmAvatar(size = 36) {
+  const a = el("span", "avatar gm");
+  a.style.setProperty("--s", size + "px");
+  a.innerHTML = '<svg aria-hidden="true"><use href="#i-gm"/></svg>';
+  return a;
+}
+
+// 이야기 본문: "대사"는 밝게, *강조*는 기울여서
+const STORY_RE = /("[^"\n]{1,400}"|“[^”\n]{1,400}”|「[^」\n]{1,400}」|『[^』\n]{1,400}』|\*[^*\n]{1,400}\*)/g;
+function storyNodes(text) {
+  const frag = document.createDocumentFragment();
+  let last = 0;
+  for (const m of text.matchAll(STORY_RE)) {
+    if (m.index > last) frag.append(text.slice(last, m.index));
+    const tok = m[0];
+    if (tok.startsWith("*")) frag.append(el("span", "em", tok.slice(1, -1)));
+    else frag.append(el("span", "dlg", tok));
+    last = m.index + tok.length;
+  }
+  if (last < text.length) frag.append(text.slice(last));
+  return frag;
+}
 
 // ------------------------------------------------------------ 상태
 let ws = null;
 let joinInfo = null;
 let joined = false;
-let kicked = false;
+let stopped = false;
 let reconnectDelay = 1000;
 let state = null;
 let log = [];
 let roomKey = null;
-let pending = null; // 생성 중인 턴 { inputs, text, kind }
+let pending = null;
 let pendingRestore = null;
 let prevDraft = null;
 let settingsDirty = false;
-let openPanel = null;
 let editingN = null;
+let railTab = "chat";
 let unreadChat = false;
+let builtOptions = false;
+let lastHostView = null;
+
+const me = () => state?.members.find((m) => m.id === state.you);
+const isHost = () => Boolean(state && state.hostId === state.you);
+const shortLabel = (s) => String(s).split(/ [·(]/)[0].trim();
 
 // ------------------------------------------------------------ 입장
-const joinForm = $("join-form");
 $("j-name").value = store.get("pc-name") || "";
 $("j-persona").value = store.get("pc-persona") || "";
 $("j-room").value = store.get("pc-room", sessionStorage) || "";
@@ -54,11 +95,11 @@ fetch("config")
   .then((r) => r.json())
   .then((cfg) => {
     $("access-field").hidden = !cfg.needsAccess;
-    if (cfg.mock) $("join-btn").textContent = "입장하기 (테스트 모드)";
+    $("mock-badge").hidden = !cfg.mock;
   })
   .catch(() => {});
 
-joinForm.addEventListener("submit", (e) => {
+$("join-form").addEventListener("submit", (e) => {
   e.preventDefault();
   joinInfo = {
     access: $("j-access").value,
@@ -70,7 +111,7 @@ joinForm.addEventListener("submit", (e) => {
   $("join-btn").disabled = true;
   store.set("pc-name", joinInfo.name);
   store.set("pc-persona", joinInfo.persona);
-  kicked = false;
+  stopped = false;
   connect();
 });
 
@@ -88,7 +129,7 @@ function connect() {
     handle(msg);
   };
   ws.onclose = () => {
-    if (kicked || !joined) {
+    if (stopped || !joined) {
       $("join-btn").disabled = false;
       return;
     }
@@ -100,20 +141,34 @@ function connect() {
 
 function sendMsg(msg) {
   if (ws && ws.readyState === 1) ws.send(JSON.stringify(msg));
-  else toast("연결이 끊겨 있어요. 잠시 후 다시 시도해 주세요.");
+  else toast("연결이 끊겨 있어요. 잠시 후 다시 시도해 주세요.", true);
 }
 
-// ------------------------------------------------------------ 메시지 처리
+function leave(message) {
+  stopped = true;
+  joined = false;
+  ws?.close();
+  $("app").hidden = true;
+  $("join-screen").hidden = false;
+  state = null;
+  log = [];
+  pending = null;
+  builtOptions = false;
+  lastHostView = null;
+  if (message) $("join-error").textContent = message;
+}
+
+// ------------------------------------------------------------ 서버 메시지
 function handle(msg) {
   switch (msg.t) {
     case "join_error":
-      $("join-error").textContent = msg.text;
-      $("join-btn").disabled = false;
-      if (joined) {
-        joined = false;
-        showJoin();
+      if (joined) leave(msg.text);
+      else {
+        $("join-error").textContent = msg.text;
+        $("join-btn").disabled = false;
+        stopped = true;
+        ws.close();
       }
-      ws.close();
       break;
     case "joined":
       joined = true;
@@ -121,11 +176,11 @@ function handle(msg) {
       store.set("pc-room", joinInfo.room, sessionStorage);
       store.set("pc-access", joinInfo.access, sessionStorage);
       $("join-screen").hidden = true;
-      $("room-screen").hidden = false;
+      $("app").hidden = false;
       $("join-btn").disabled = false;
       if (msg.isNewRoom) {
         const backup = readBackup();
-        pendingRestore = backup && backup.log && backup.log.some((e) => e.type === "turn") ? backup : null;
+        pendingRestore = backup?.log?.some((e) => e.type === "turn") ? backup : null;
       }
       break;
     case "state":
@@ -143,29 +198,23 @@ function handle(msg) {
       break;
     case "gen_start":
       pending = { inputs: msg.inputs || [], text: "", kind: msg.kind, resumed: msg.resumed };
-      renderFeed();
+      renderFeed(true);
       break;
     case "delta":
-      if (pending) {
-        pending.text += msg.text;
-        const node = document.querySelector(".story.streaming");
-        if (node) {
-          const stick = nearBottom();
-          node.textContent = pending.text;
-          if (stick) scrollToBottom();
-        }
-      }
+      if (!pending) break;
+      pending.text += msg.text;
+      updateLiveStory();
       break;
     case "gen_end":
       pending = null;
       renderFeed();
       break;
     case "notice":
-      toast(msg.text);
+      toast(msg.text, msg.text.startsWith("⚠️"));
       addOoc({ system: true, text: msg.text, at: Date.now() });
       break;
     case "error":
-      toast(msg.text);
+      toast(msg.text, true);
       break;
     case "ooc":
       addOoc(msg.entry);
@@ -173,66 +222,50 @@ function handle(msg) {
     case "ooc_history":
       $("ooc-list").replaceChildren();
       (msg.entries || []).forEach((e) => addOoc(e, true));
+      if (!msg.entries?.length) $("ooc-list").append(el("div", "ooc-empty", "AI에게 전달되지 않는 파티원끼리의 잡담방이에요."));
       break;
     case "kicked":
-      kicked = true;
-      joined = false;
-      alert("방장에 의해 강퇴되었어요.");
-      showJoin();
+      leave("방장에 의해 강퇴되었어요.");
       break;
     case "replaced":
-      kicked = true;
-      joined = false;
-      alert("다른 탭에서 같은 계정으로 접속해서 이 탭의 연결을 끊었어요.");
-      showJoin();
+      leave("다른 탭에서 같은 계정으로 들어와서 이 탭의 연결을 끊었어요.");
       break;
   }
 }
 
-function showJoin() {
-  $("room-screen").hidden = true;
-  $("join-screen").hidden = false;
-  state = null;
-  log = [];
-  pending = null;
-}
-
-// ------------------------------------------------------------ 렌더링: 상단/입력창
-function me() {
-  return state?.members.find((m) => m.id === state.you);
-}
-function isHost() {
-  return state && state.hostId === state.you;
-}
-
+// ------------------------------------------------------------ 상단 · 파티 · 입력창
 function renderState() {
   if (!state) return;
   const s = state.settings;
   const host = isHost();
-  document.title = `${s.title} · 파티챗`;
-  $("room-title").textContent = s.title;
-  const modelLabel = (state.options.models[s.model] || s.model).split(" · ")[0];
-  $("room-meta").textContent = `${state.turn}턴 · ${modelLabel}`;
-  const online = state.members.filter((m) => m.connected).length;
-  $("party-count").textContent = `${online}/${s.maxPlayers}`;
-
-  // 파티 상태 칩
-  const ps = $("party-status");
-  ps.replaceChildren();
-  for (const m of state.members) {
-    const chip = el("span", "pchip");
-    if (m.submitted) chip.classList.add(m.passed ? "passed" : "done");
-    if (!m.connected) chip.classList.add("off");
-    chip.append(el("span", "dot"));
-    const label = m.name + (m.id === state.hostId ? " 👑" : "");
-    const st = !m.connected ? "오프라인" : m.submitted ? (m.passed ? "스킵" : "제출") : "작성 중";
-    chip.append(el("span", null, `${label} · ${st}`));
-    ps.append(chip);
+  const gen = Boolean(state.generating);
+  const active = state.members.filter((m) => m.connected);
+  const done = active.filter((m) => m.submitted).length;
+  const hasTurn = log.some((e) => e.type === "turn");
+  if (lastHostView !== host) {
+    lastHostView = host;
+    renderFeed();
   }
 
+  document.title = `${s.title} · PARTY CHAT`;
+  $("top-title").textContent = s.title;
+  $("top-pill").classList.toggle("live", gen);
+  $("top-state").textContent = gen ? "AI 작성 중" : `TURN ${state.turn}`;
+  $("room-title").textContent = s.title;
+  const chips = $("room-chips");
+  chips.replaceChildren(
+    el("span", "chip accent", shortLabel(state.options.models[s.model] || s.model).replace("Claude ", "")),
+    el("span", "chip", shortLabel(state.options.lengths[s.length] || "")),
+    el("span", "chip", s.mode === "all" ? "자동 진행" : "방장 진행"),
+    el("span", "chip", `TURN ${state.turn}`),
+  );
+  $("party-count").textContent = `${active.length}/${s.maxPlayers}`;
+  $("party-count-top").textContent = `${active.length}`;
+
+  renderMembers();
+  renderPartyBar(done, active.length);
+
   // 방장 도구
-  const gen = Boolean(state.generating);
-  const hasTurn = log.some((e) => e.type === "turn");
   $("host-tools").hidden = !host;
   $("advance-btn").disabled = gen;
   $("regen-btn").disabled = gen || !hasTurn;
@@ -240,229 +273,333 @@ function renderState() {
   $("stop-btn").hidden = !gen;
   $("advance-btn").textContent = s.mode === "host" ? "▶ 진행" : "▶ 바로 진행";
 
-  // 내 입력창
-  const mine = me();
+  // 내 입력
   const draft = state.yourDraft;
   const input = $("action-input");
   if (draft !== prevDraft) {
     if (draft === null && prevDraft !== null) input.value = "";
-    else if (typeof draft === "string" && draft && document.activeElement !== input) input.value = draft;
+    else if (draft && document.activeElement !== input) input.value = draft;
     prevDraft = draft;
   }
   input.disabled = gen;
+  $("action-form").classList.toggle("locked", gen);
   $("submit-btn").disabled = gen;
   $("pass-btn").disabled = gen;
   $("submit-btn").textContent = draft ? "수정 제출" : "제출";
   $("unsubmit-btn").hidden = draft === null || gen;
 
-  const active = state.members.filter((m) => m.connected);
-  const done = active.filter((m) => m.submitted).length;
-  if (gen) setStatus("AI가 이야기를 쓰는 중…");
-  else if (draft !== null && mine) {
-    setStatus(
-      s.mode === "all"
-        ? `${draft ? "제출 완료" : "스킵"} · 다른 파티원을 기다리는 중 (${done}/${active.length})`
-        : `${draft ? "제출 완료" : "스킵"} · 방장이 진행하면 이야기가 이어져요 (${done}/${active.length})`,
-    );
+  const status = $("status-line");
+  status.replaceChildren();
+  if (gen) status.append(el("b", null, "AI가 다음 장면을 쓰는 중이에요…"));
+  else if (draft !== null) {
+    status.append(el("b", null, draft ? "제출 완료 " : "스킵 "));
+    status.append(s.mode === "all" ? `· 다른 파티원을 기다리는 중 (${done}/${active.length})` : `· 방장이 진행하면 이야기가 이어져요 (${done}/${active.length})`);
   } else {
-    setStatus(
-      s.mode === "all"
-        ? `모두 제출하면 자동으로 이야기가 이어져요 (${done}/${active.length})`
-        : `방장이 ▶ 진행을 누르면 이야기가 이어져요 (${done}/${active.length})`,
-    );
+    status.append(s.mode === "all" ? `모두 제출하면 자동으로 이야기가 이어져요 · ${done}/${active.length}` : `방장이 ▶ 진행을 누르면 이야기가 이어져요 · ${done}/${active.length}`);
   }
 
-  // 복원 배너
   $("restore-banner").hidden = !(host && pendingRestore && !hasTurn);
-
-  renderMembers();
-  renderSettings();
   document.querySelectorAll(".host-only").forEach((n) => (n.hidden = !host));
-  document.querySelectorAll(".edit-btn").forEach((b) => (b.hidden = !host || gen));
+  document.querySelectorAll(".scene .edit").forEach((b) => (b.hidden = !host || gen));
+  renderSettings();
+  syncDockHeight();
 }
 
-function setStatus(text) {
-  $("status-line").textContent = text;
-}
-
-// ------------------------------------------------------------ 렌더링: 이야기
-function nearBottom() {
-  const f = $("feed");
-  return f.scrollHeight - f.scrollTop - f.clientHeight < 120;
-}
-function scrollToBottom() {
-  const f = $("feed");
-  f.scrollTop = f.scrollHeight;
-}
-
-function inputChips(inputs) {
-  const wrap = el("div", "inputs");
-  for (const i of inputs) {
-    const chip = el("div", "input-chip" + (i.text ? "" : " passed"));
-    chip.append(el("b", null, i.name));
-    chip.append(document.createTextNode(i.text || "(지켜봄)"));
-    wrap.append(chip);
-  }
-  return wrap;
-}
-
-function renderFeed() {
-  const feed = $("feed");
-  const stick = nearBottom() || !feed.childElementCount;
-  feed.replaceChildren();
-
-  if (!log.length && !pending) {
-    const empty = el("div", "empty-feed");
-    empty.append(el("p", null, "아직 이야기가 시작되지 않았어요."));
-    empty.append(
-      el(
-        "p",
-        "hint",
-        isHost()
-          ? "설정에서 세계관 프롬프트와 오프닝을 적고, 아래에 첫 행동을 입력해 보세요."
-          : "방장이 세계관을 정하는 동안 첫 행동을 입력해 보세요.",
-      ),
-    );
-    feed.append(empty);
-  }
-
-  for (const e of log) {
-    const n = e.type === "opening" ? 0 : e.n;
-    const entry = el("article", "entry");
-    const head = el("div", "entry-head");
-    head.append(el("span", "tag", e.type === "opening" ? "오프닝" : `${e.n}턴`));
-    if (e.model) head.append(el("span", null, e.model));
-    const editBtn = el("button", "edit-btn", "수정");
-    editBtn.hidden = !isHost() || Boolean(pending);
-    editBtn.onclick = () => {
-      editingN = n;
-      renderFeed();
-    };
-    head.append(editBtn);
-    entry.append(head);
-    if (e.type === "turn" && e.inputs?.length) entry.append(inputChips(e.inputs));
-    const text = e.type === "opening" ? e.text : e.story;
-    if (editingN === n) {
-      const ta = el("textarea", "story-edit");
-      ta.value = text;
-      const actions = el("div", "edit-actions");
-      const save = el("button", "primary", "저장");
-      const cancel = el("button", null, "취소");
-      save.onclick = () => {
-        sendMsg({ t: "editStory", n, text: ta.value });
-        editingN = null;
-      };
-      cancel.onclick = () => {
-        editingN = null;
-        renderFeed();
-      };
-      actions.append(cancel, save);
-      entry.append(ta, actions);
-    } else {
-      entry.append(el("div", "story", text));
-    }
-    feed.append(entry);
-  }
-
-  if (pending) {
-    const entry = el("article", "entry");
-    const head = el("div", "entry-head");
-    head.append(el("span", "tag", pending.kind === "regen" ? "다시 쓰는 중" : "작성 중"));
-    entry.append(head);
-    if (pending.inputs.length) entry.append(inputChips(pending.inputs));
-    entry.append(el("div", "story streaming", pending.text || (pending.resumed ? "(진행 중인 장면을 받아오는 중…)" : "")));
-    feed.append(entry);
-  }
-
-  if (stick) scrollToBottom();
-}
-
-// ------------------------------------------------------------ 패널
-const panelTitles = { party: "파티원", settings: "설정", chat: "잡담", records: "기록" };
-document.querySelectorAll("[data-panel]").forEach((btn) => {
-  btn.addEventListener("click", () => togglePanel(btn.dataset.panel));
-});
-$("panel-close").onclick = () => togglePanel(null);
-
-function togglePanel(name) {
-  openPanel = openPanel === name ? null : name;
-  $("panel").hidden = !openPanel;
-  document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("active", p.dataset.pane === openPanel));
-  if (openPanel) $("panel-title").textContent = panelTitles[openPanel];
-  if (openPanel === "chat") {
-    unreadChat = false;
-    $("chat-badge").hidden = true;
-    const list = $("ooc-list");
-    list.scrollTop = list.scrollHeight;
-  }
-  if (openPanel === "party" && state) {
-    const m = me();
-    if (m) {
-      $("p-name").value = m.name;
-      $("p-persona").value = m.persona;
-    }
-  }
-  if (openPanel === "settings") {
-    settingsDirty = false;
-    renderSettings();
-  }
+function statusOf(m) {
+  if (!m.connected) return { cls: "off", label: "오프라인", dot: null };
+  if (m.submitted) return m.passed ? { cls: "passed", label: "스킵", dot: "wait" } : { cls: "done", label: "제출", dot: "on" };
+  return { cls: "", label: "작성 중", dot: null };
 }
 
 function renderMembers() {
   const list = $("member-list");
   list.replaceChildren();
   for (const m of state.members) {
-    const li = el("li", "member");
-    const top = el("div", "member-top");
-    top.append(el("span", "name", m.name));
-    if (m.id === state.hostId) top.append(el("span", "badge host", "방장"));
-    if (m.id === state.you) top.append(el("span", "badge", "나"));
-    if (!m.connected) top.append(el("span", "badge off", "오프라인"));
-    li.append(top);
-    if (m.persona) li.append(el("div", "persona", m.persona));
+    const st = statusOf(m);
+    const li = el("li", "member" + (m.connected ? "" : " off"));
+    li.append(avatar(m.name, 36, st.dot));
+    const info = el("div", "info");
+    const row = el("div", "name-row");
+    const name = el("span", "name", m.name);
+    name.style.color = colorOf(m.name);
+    row.append(name);
+    if (m.id === state.hostId) row.append(el("span", "crown", "👑"));
+    if (m.id === state.you) row.append(el("span", "chip", "나"));
+    row.append(el("span", "chip tag " + (st.cls === "done" ? "accent" : st.cls === "passed" ? "gold" : ""), st.label));
+    info.append(row);
+    if (m.persona) info.append(el("div", "persona", m.persona));
     if (isHost() && m.id !== state.you) {
-      const actions = el("div", "actions");
-      const tr = el("button", null, "방장 넘기기");
+      const tools = el("div", "tools");
+      const tr = el("button", "btn", "방장 넘기기");
       tr.disabled = !m.connected;
       tr.onclick = () => confirm(`${m.name}님에게 방장을 넘길까요?`) && sendMsg({ t: "transfer", id: m.id });
-      const kick = el("button", "danger", "강퇴");
+      const kick = el("button", "btn danger", "강퇴");
       kick.onclick = () => confirm(`${m.name}님을 강퇴할까요? 다시 들어올 수 없어요.`) && sendMsg({ t: "kick", id: m.id });
-      actions.append(tr, kick);
-      li.append(actions);
+      tools.append(tr, kick);
+      info.append(tools);
     }
+    li.append(info);
     list.append(li);
+  }
+  for (let i = state.members.length; i < state.settings.maxPlayers; i++) {
+    const slot = el("li", "empty-slot");
+    slot.append(el("span"), "빈 자리");
+    list.append(slot);
   }
 }
 
+function renderPartyBar(done, total) {
+  const bar = $("party-bar");
+  bar.replaceChildren();
+  for (const m of state.members) {
+    const st = statusOf(m);
+    const chip = el("span", "who " + st.cls);
+    chip.append(avatar(m.name, 22));
+    chip.append(m.name);
+    chip.append(el("span", "s", st.label));
+    bar.append(chip);
+  }
+  bar.append(el("span", "count", `${done}/${total} 제출`));
+}
+
+function setStatus(text) {
+  $("status-line").textContent = text;
+}
+
+// 입력창 높이에 맞춰 '최신 장면' 버튼 위치 조정
+function syncDockHeight() {
+  document.documentElement.style.setProperty("--dock-h", $("dock").offsetHeight + "px");
+}
+new ResizeObserver(syncDockHeight).observe($("dock"));
+
+// ------------------------------------------------------------ 이야기 피드
+const feed = $("feed");
+const nearBottom = () => feed.scrollHeight - feed.scrollTop - feed.clientHeight < 140;
+const scrollToBottom = () => {
+  feed.scrollTop = feed.scrollHeight;
+  $("jump-btn").hidden = true;
+};
+feed.addEventListener("scroll", () => {
+  if (nearBottom()) $("jump-btn").hidden = true;
+});
+$("jump-btn").onclick = scrollToBottom;
+
+function actsBlock(inputs) {
+  const wrap = el("div", "acts");
+  const myName = me()?.name;
+  for (const i of inputs) {
+    const row = el("div", "act" + (i.name === myName ? " mine" : "") + (i.text ? "" : " passed"));
+    row.style.setProperty("--c", colorOf(i.name));
+    row.append(avatar(i.name, 30));
+    const bubble = el("div", "bubble");
+    bubble.append(el("span", "who", i.name));
+    bubble.append(el("div", "txt", i.text || "이번 턴은 지켜봄"));
+    row.append(bubble);
+    wrap.append(row);
+  }
+  return wrap;
+}
+
+function sceneBlock({ text, model, n, live }) {
+  const wrap = el("article", "scene");
+  wrap.append(gmAvatar(36));
+  const main = el("div", "scene-main");
+  const head = el("div", "scene-head");
+  head.append(el("span", "name", "진행자"));
+  if (model) head.append(el("span", "chip", model.replace("claude-", "").replace(/-(\d)-(\d)$/, " $1.$2")));
+  if (live) head.append(el("span", "chip accent", pending?.kind === "regen" ? "다시 쓰는 중" : "작성 중"));
+  if (!live) {
+    const edit = el("button", "btn ghost sm edit", "수정");
+    edit.hidden = !isHost() || Boolean(pending);
+    edit.onclick = () => {
+      editingN = n;
+      renderFeed();
+    };
+    head.append(edit);
+  }
+  main.append(head);
+  const body = el("div", "scene-body");
+  if (!live && editingN === n) {
+    const ta = el("textarea", "story-edit");
+    ta.value = text;
+    const actions = el("div", "edit-actions");
+    const cancel = el("button", "btn sm", "취소");
+    const save = el("button", "btn sm primary", "저장");
+    cancel.onclick = () => { editingN = null; renderFeed(); };
+    save.onclick = () => { sendMsg({ t: "editStory", n, text: ta.value }); editingN = null; };
+    actions.append(cancel, save);
+    body.append(ta, actions);
+  } else if (live && !text) {
+    const dots = el("span", "dots");
+    dots.id = "live-story";
+    dots.append(el("i"), el("i"), el("i"));
+    body.append(dots);
+  } else {
+    const story = el("div", "story" + (live ? " typing" : ""));
+    if (live) story.id = "live-story";
+    story.append(storyNodes(text));
+    body.append(story);
+  }
+  main.append(body);
+  wrap.append(main);
+  return wrap;
+}
+
+function turnDivider(label) {
+  const d = el("div", "turn-div");
+  d.append(el("span", null, label));
+  return d;
+}
+
+function emptyState() {
+  const box = el("div", "empty-feed");
+  box.append(el("b", null, "이야기를 시작해 볼까요?"));
+  box.append(el("p", null, isHost() ? "방장인 당신이 무대를 준비할 차례예요." : "방장이 무대를 준비하는 동안 첫 행동을 생각해 두세요."));
+  const steps = el("div", "steps");
+  const items = isHost()
+    ? [["01", "설정에서 세계관 프롬프트와 오프닝을 적어요"], ["02", "친구들에게 방 비밀번호를 알려 줘요"], ["03", "모두 첫 행동을 제출하면 시작!"]]
+    : [["01", "왼쪽(또는 파티 버튼)에서 내 캐릭터를 확인해요"], ["02", "아래 입력창에 첫 행동이나 대사를 적어요"], ["03", "모두 제출하면 AI가 장면을 써요"]];
+  for (const [num, text] of items) {
+    const row = el("div");
+    row.append(el("em", null, num), text);
+    steps.append(row);
+  }
+  box.append(steps);
+  return box;
+}
+
+function renderFeed(forceStick) {
+  const inner = $("feed-inner");
+  const stick = forceStick || nearBottom() || !inner.childElementCount;
+  inner.replaceChildren();
+  if (!log.length && !pending) inner.append(emptyState());
+
+  for (const e of log) {
+    if (e.type === "opening") {
+      const card = el("section", "prologue");
+      card.append(el("div", "eyebrow", "PROLOGUE"));
+      if (editingN === 0) {
+        const s = sceneBlock({ text: e.text, n: 0 });
+        card.append(s.querySelector(".scene-body"));
+      } else {
+        const story = el("div", "story");
+        story.append(storyNodes(e.text));
+        card.append(story);
+        if (isHost() && !pending) {
+          const edit = el("button", "btn ghost sm", "프롤로그 수정");
+          edit.style.marginTop = "12px";
+          edit.onclick = () => { editingN = 0; renderFeed(); };
+          card.append(edit);
+        }
+      }
+      inner.append(card);
+    } else if (e.type === "turn") {
+      inner.append(turnDivider(`TURN ${e.n}`));
+      if (e.inputs?.length) inner.append(actsBlock(e.inputs));
+      inner.append(sceneBlock({ text: e.story, model: e.model, n: e.n }));
+    }
+  }
+
+  if (pending) {
+    const n = log.filter((e) => e.type === "turn").length + 1;
+    inner.append(turnDivider(`TURN ${n}`));
+    if (pending.inputs.length) inner.append(actsBlock(pending.inputs));
+    inner.append(sceneBlock({ text: pending.text, live: true }));
+  }
+
+  if (stick) scrollToBottom();
+  else if (pending) $("jump-btn").hidden = false;
+}
+
+function updateLiveStory() {
+  const node = $("live-story");
+  if (!node) return renderFeed();
+  const stick = nearBottom();
+  if (node.classList.contains("dots")) {
+    const story = el("div", "story typing");
+    story.id = "live-story";
+    node.replaceWith(story);
+    story.append(storyNodes(pending.text));
+  } else {
+    node.replaceChildren(storyNodes(pending.text));
+  }
+  if (stick) scrollToBottom();
+  else $("jump-btn").hidden = false;
+}
+
+// ------------------------------------------------------------ 시트 · 탭
+const app = $("app");
+document.querySelectorAll("[data-sheet]").forEach((b) => {
+  b.addEventListener("click", () => {
+    const cls = "show-" + b.dataset.sheet;
+    const open = !app.classList.contains(cls);
+    app.classList.remove("show-side", "show-rail");
+    if (open) app.classList.add(cls);
+    if (open && b.dataset.sheet === "rail" && railTab === "chat") markChatRead();
+  });
+});
+$("scrim").onclick = () => app.classList.remove("show-side", "show-rail");
+
+document.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => selectTab(b.dataset.tab)));
+function selectTab(tab) {
+  railTab = tab;
+  document.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
+  document.querySelectorAll("[data-pane]").forEach((p) => p.classList.toggle("on", p.dataset.pane === tab));
+  if (tab === "chat") markChatRead();
+  if (tab === "settings") {
+    settingsDirty = false;
+    renderSettings();
+  }
+}
+function markChatRead() {
+  unreadChat = false;
+  $("chat-dot").hidden = true;
+  $("menu-dot").hidden = true;
+  const list = $("ooc-list");
+  list.scrollTop = list.scrollHeight;
+}
+
+// ------------------------------------------------------------ 설정
 const sf = (n) => $("settings-form").elements.namedItem(n);
 
-function fillSelect(sel, options) {
-  if (sel.options.length === Object.keys(options).length) return;
-  sel.replaceChildren();
-  for (const [value, label] of Object.entries(options)) {
-    const o = el("option", null, label);
-    o.value = value;
-    sel.append(o);
+function buildOptions() {
+  if (builtOptions || !state) return;
+  builtOptions = true;
+  const models = $("model-list");
+  models.replaceChildren();
+  for (const [value, label] of Object.entries(state.options.models)) {
+    const [name, desc] = label.split(" · ");
+    const lab = el("label", "model");
+    const input = Object.assign(el("input"), { type: "radio", name: "model", value });
+    const span = el("span");
+    span.append(el("b", null, name), el("small", null, desc || ""));
+    lab.append(input, span);
+    models.append(lab);
+  }
+  for (const [id, name, opts] of [["seg-length", "length", state.options.lengths], ["seg-effort", "effort", state.options.efforts]]) {
+    const seg = $(id);
+    seg.replaceChildren();
+    for (const [value, label] of Object.entries(opts)) {
+      const lab = el("label");
+      lab.title = label;
+      lab.append(Object.assign(el("input"), { type: "radio", name, value }), el("span", null, shortLabel(label)));
+      seg.append(lab);
+    }
   }
 }
 
 function renderSettings() {
   if (!state) return;
-  const form = $("settings-form");
-  fillSelect(sf("model"), state.options.models);
-  fillSelect(sf("length"), state.options.lengths);
-  fillSelect(sf("effort"), state.options.efforts);
+  buildOptions();
   const host = isHost();
   $("settings-readonly").hidden = host;
-  $("settings-save").hidden = !host;
-  for (const field of form.elements) {
+  $("save-bar").hidden = !host;
+  for (const field of $("settings-form").elements) {
     if (field.name) field.disabled = !host;
   }
   if (settingsDirty && host) return;
   const s = state.settings;
-  for (const key of ["title", "systemPrompt", "opening", "memo", "model", "length", "effort", "mode"]) {
-    sf(key).value = s[key];
-  }
+  for (const key of ["title", "systemPrompt", "opening", "memo", "model", "length", "effort", "mode"]) sf(key).value = s[key];
   sf("maxPlayers").value = String(s.maxPlayers);
   const ht = sf("historyTurns");
   if (![...ht.options].some((o) => o.value === String(s.historyTurns))) {
@@ -474,6 +611,7 @@ function renderSettings() {
 }
 
 $("settings-form").addEventListener("input", () => (settingsDirty = true));
+$("settings-form").addEventListener("change", () => (settingsDirty = true));
 $("settings-form").addEventListener("submit", (e) => {
   e.preventDefault();
   sendMsg({
@@ -495,16 +633,24 @@ $("settings-form").addEventListener("submit", (e) => {
   toast("설정을 저장했어요.");
 });
 
+// ------------------------------------------------------------ 프로필
+$("profile-btn").onclick = () => {
+  const m = me();
+  if (!m) return;
+  $("p-name").value = m.name;
+  $("p-persona").value = m.persona;
+  $("profile-modal").showModal();
+};
+$("profile-cancel").onclick = () => $("profile-modal").close();
 $("profile-form").addEventListener("submit", (e) => {
-  e.preventDefault();
   const name = $("p-name").value.trim();
   const persona = $("p-persona").value.trim();
-  if (!name) return toast("닉네임을 입력해 주세요.");
-  sendMsg({ t: "profile", name, persona });
-  if (joinInfo) {
-    joinInfo.name = name;
-    joinInfo.persona = persona;
+  if (!name) {
+    e.preventDefault();
+    return toast("닉네임을 입력해 주세요.", true);
   }
+  sendMsg({ t: "profile", name, persona });
+  if (joinInfo) Object.assign(joinInfo, { name, persona });
   store.set("pc-name", name);
   store.set("pc-persona", persona);
   toast("프로필을 저장했어요.");
@@ -513,22 +659,26 @@ $("profile-form").addEventListener("submit", (e) => {
 // ------------------------------------------------------------ 잡담
 function addOoc(entry, silent) {
   const list = $("ooc-list");
-  const li = el("li");
+  list.querySelector(".ooc-empty")?.remove();
+  const stick = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+  let row;
   if (entry.system) {
-    li.className = "hint";
-    li.textContent = entry.text;
+    row = el("div", "c-sys" + (entry.text.startsWith("⚠️") ? " warn" : ""), entry.text);
   } else {
-    li.append(el("b", null, entry.name));
-    li.append(document.createTextNode(entry.text));
+    row = el("div", "c-msg");
+    const nick = el("span", "nick", entry.name);
+    nick.style.color = colorOf(entry.name);
+    row.append(nick, entry.text);
+    row.append(el("time", null, new Date(entry.at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })));
   }
-  const t = el("time", null, new Date(entry.at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }));
-  li.append(t);
-  list.append(li);
-  while (list.childElementCount > 200) list.firstChild.remove();
-  list.scrollTop = list.scrollHeight;
-  if (!silent && !entry.system && openPanel !== "chat") {
+  list.append(row);
+  while (list.childElementCount > 300) list.firstChild.remove();
+  if (stick || silent) list.scrollTop = list.scrollHeight;
+  const chatOpen = railTab === "chat" && (window.innerWidth > 900 || app.classList.contains("show-rail"));
+  if (!silent && !entry.system && !chatOpen) {
     unreadChat = true;
-    $("chat-badge").hidden = false;
+    $("chat-dot").hidden = false;
+    $("menu-dot").hidden = window.innerWidth > 900;
   }
 }
 $("ooc-form").addEventListener("submit", (e) => {
@@ -541,6 +691,12 @@ $("ooc-form").addEventListener("submit", (e) => {
 
 // ------------------------------------------------------------ 행동 입력
 const actionInput = $("action-input");
+const kindOf = () => $("action-form").elements.namedItem("kind").value;
+$("action-form").addEventListener("change", (e) => {
+  if (e.target.name !== "kind") return;
+  actionInput.placeholder = kindOf() === "say" ? "내 캐릭터가 할 말을 입력하세요 (따옴표는 자동)" : "내 캐릭터의 행동을 입력하세요";
+  actionInput.focus();
+});
 const coarse = window.matchMedia("(pointer: coarse)").matches;
 actionInput.addEventListener("keydown", (e) => {
   if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
@@ -550,28 +706,25 @@ actionInput.addEventListener("keydown", (e) => {
 });
 $("action-form").addEventListener("submit", (e) => {
   e.preventDefault();
-  const text = actionInput.value.trim();
+  let text = actionInput.value.trim();
   if (!text) return toast("행동이나 대사를 입력해 주세요. 이번 턴을 넘기려면 스킵을 누르세요.");
+  if (kindOf() === "say" && !/^["“「『]/.test(text)) text = `“${text}”`;
+  actionInput.value = text;
   sendMsg({ t: "submit", text });
   actionInput.blur();
 });
 $("pass-btn").onclick = () => sendMsg({ t: "pass" });
 $("unsubmit-btn").onclick = () => sendMsg({ t: "unsubmit" });
 
-// 방장 도구
 $("advance-btn").onclick = () => sendMsg({ t: "advance" });
 $("regen-btn").onclick = () => confirm("마지막 장면을 같은 행동으로 다시 쓸까요?") && sendMsg({ t: "regen" });
 $("undo-btn").onclick = () => confirm("마지막 턴을 지우고 행동 입력 단계로 되돌릴까요?") && sendMsg({ t: "undo" });
 $("stop-btn").onclick = () => sendMsg({ t: "stop" });
 
-// ------------------------------------------------------------ 기록 / 백업
-function exportData() {
-  return { app: "party-chat", version: 1, exportedAt: new Date().toISOString(), settings: state?.settings, log };
-}
+// ------------------------------------------------------------ 기록 · 백업
 function download(name, content, type) {
-  const blob = new Blob([content], { type });
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
+  a.href = URL.createObjectURL(new Blob([content], { type }));
   a.download = name;
   document.body.append(a);
   a.click();
@@ -583,17 +736,18 @@ function fileStamp() {
   const p = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
 }
-function safeTitle() {
-  return (state?.settings.title || "파티챗").replace(/[\\/:*?"<>|]/g, "_");
-}
-$("export-json").onclick = () =>
-  download(`${safeTitle()}-${fileStamp()}.json`, JSON.stringify(exportData(), null, 2), "application/json");
+const safeTitle = () => (state?.settings.title || "파티챗").replace(/[\\/:*?"<>|]/g, "_");
+
+$("export-json").onclick = () => {
+  const data = { app: "party-chat", version: 1, exportedAt: new Date().toISOString(), settings: state?.settings, log };
+  download(`${safeTitle()}-${fileStamp()}.json`, JSON.stringify(data, null, 2), "application/json");
+};
 $("export-txt").onclick = () => {
   const lines = [`# ${state?.settings.title || "파티챗"}`, ""];
   for (const e of log) {
-    if (e.type === "opening") lines.push("[오프닝]", e.text, "");
+    if (e.type === "opening") lines.push("[프롤로그]", e.text, "");
     else {
-      lines.push(`[${e.n}턴]`);
+      lines.push(`[TURN ${e.n}]`);
       for (const i of e.inputs) lines.push(`> ${i.name}: ${i.text || "(지켜봄)"}`);
       lines.push("", e.story, "");
     }
@@ -610,16 +764,14 @@ $("import-file").addEventListener("change", async (e) => {
     if (!confirm("현재 이야기를 지우고 이 파일의 이야기와 설정으로 바꿀까요?")) return;
     sendMsg({ t: "import", data: { log: data.log, settings: data.settings } });
   } catch {
-    toast("파티챗 저장 파일(.json)이 아니에요.");
+    toast("파티챗 저장 파일(.json)이 아니에요.", true);
   }
 });
 $("reset-btn").onclick = () => {
   if (confirm("이야기를 모두 지우고 처음부터 시작할까요? (설정은 유지돼요)")) sendMsg({ t: "reset" });
 };
 
-function backupKey() {
-  return roomKey ? `pc-backup:${roomKey}` : null;
-}
+const backupKey = () => (roomKey ? `pc-backup:${roomKey}` : null);
 function readBackup() {
   const k = backupKey();
   if (!k) return null;
@@ -639,17 +791,15 @@ $("restore-no").onclick = () => {
   $("restore-banner").hidden = true;
 };
 
-// ------------------------------------------------------------ 토스트
+// ------------------------------------------------------------ 토스트 · 연결 유지
 let toastTimer = null;
-function toast(text) {
+function toast(text, bad = false) {
   const t = $("toast");
   t.textContent = text;
-  t.classList.add("show");
+  t.className = "toast show" + (bad ? " bad" : "");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+  toastTimer = setTimeout(() => (t.className = "toast"), 3200);
 }
-
-// 연결 유지용 핑 (무료 호스팅의 유휴 연결 끊김 방지)
 setInterval(() => {
   if (ws && ws.readyState === 1 && joined) ws.send(JSON.stringify({ t: "ping" }));
 }, 25000);
