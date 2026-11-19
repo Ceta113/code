@@ -23,8 +23,15 @@ if (!token || !/^[a-f0-9]{32}$/.test(token)) {
   store.set("pc-token", token);
 }
 
-// 이름마다 고정 색 (밤/낮 둘 다에서 읽히는 차분한 색)
-const PALETTE = ["#7fa8e0", "#5fc0b5", "#d4a35f", "#a993d9", "#e08f8f", "#8fbf6f", "#6cc0e0", "#d9a3c7"];
+// 이름마다 고정 색: 포인트색 하나에서 밝기만 달리한 톤 (밤/낮 모두 자동)
+const PALETTE = [
+  "var(--accent)",
+  "color-mix(in srgb, var(--accent) 45%, var(--muted))",
+  "color-mix(in srgb, var(--accent) 55%, var(--text))",
+  "var(--muted)",
+  "color-mix(in srgb, var(--accent) 70%, var(--bg))",
+  "color-mix(in srgb, var(--accent) 25%, var(--text))",
+];
 function colorOf(name) {
   let h = 0;
   for (const ch of String(name)) h = (h * 31 + ch.codePointAt(0)) >>> 0;

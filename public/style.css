@@ -13,9 +13,8 @@
   --accent: #6aa6e0;
   --accent-ink: #0b1422;
   --accent-soft: rgba(106, 166, 224, 0.14);
-  --teal: #4fb3a9;
-  --ok: #5fbfa8;
-  --warn: #e0b25a;
+  --ok: var(--accent);
+  --warn: var(--muted);
   --bad: #e46a6a;
   --bad-soft: rgba(228, 106, 106, 0.13);
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -39,9 +38,6 @@
   --accent: #24457f;
   --accent-ink: #ffffff;
   --accent-soft: rgba(36, 69, 127, 0.09);
-  --teal: #1f7f78;
-  --ok: #1f7f78;
-  --warn: #9a6b12;
   --bad: #b73a3a;
   --bad-soft: rgba(183, 58, 58, 0.09);
   --shadow: 0 10px 30px rgba(20, 30, 55, 0.14);
@@ -144,7 +140,7 @@ input:disabled, select:disabled, textarea:disabled { opacity: 0.65; }
 .row-input { display: flex; gap: 6px; }
 .row-input input { flex: 1; }
 .join-form .btn.lg { margin-top: 4px; }
-.mock-note { font-size: 12px; color: var(--warn); }
+.mock-note { font-size: 12px; color: var(--muted); }
 
 /* ---------- 방 화면 ---------- */
 .app { height: 100dvh; display: grid; grid-template-rows: auto minmax(0, 1fr); }
@@ -308,7 +304,7 @@ input:disabled, select:disabled, textarea:disabled { opacity: 0.65; }
 
 .form { display: flex; flex-direction: column; gap: 18px; }
 .form textarea { font-size: 14px; line-height: 1.6; }
-.note { padding: 10px 12px; border-left: 2px solid var(--warn); background: var(--raised); font-size: 13px; color: var(--soft); }
+.note { padding: 10px 12px; border-left: 2px solid var(--accent); background: var(--raised); font-size: 13px; color: var(--soft); }
 .models { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
 .models label { position: relative; display: block; cursor: pointer; }
 .models label + label { border-top: 1px solid var(--line-soft); }
