@@ -83,7 +83,7 @@ function applyTheme(t) {
   else delete document.documentElement.dataset.theme;
   const light = document.documentElement.dataset.theme === "light";
   $("theme-icon").setAttribute("href", light ? "#i-moon" : "#i-sun");
-  document.querySelector('meta[name="theme-color"]').content = light ? "#eef1f6" : "#0e1320";
+  document.querySelector('meta[name="theme-color"]').content = light ? "#ffffff" : "#000000";
 }
 function toggleTheme() {
   const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
