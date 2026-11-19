@@ -3,217 +3,255 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0a0b0d" />
-  <title>PARTY CHAT</title>
-  <meta name="description" content="여럿이 함께 즐기는 AI 롤플레이 파티챗" />
+  <title>파티챗</title>
+  <meta name="description" content="친구와, 또는 AI 동료와 함께 쓰는 롤플레이 이야기" />
+  <script>
+    try { const t = localStorage.getItem("pc-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
+  </script>
+  <meta name="theme-color" content="#161412" />
+  <link rel="stylesheet" href="fonts/pretendard/pretendardvariable-dynamic-subset.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" />
   <link rel="stylesheet" href="style.css" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232df5a0'/%3E%3Cpath d='M9 8h8.5a5.5 5.5 0 0 1 0 11H14v5H9z' fill='%2304130c'/%3E%3Ccircle cx='17' cy='13.5' r='2' fill='%232df5a0'/%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' rx='7' fill='%23e5774b'/%3E%3Ccircle cx='11' cy='11' r='2.4' fill='%231b100b'/%3E%3Ccircle cx='21' cy='21' r='2.4' fill='%231b100b'/%3E%3Ccircle cx='21' cy='11' r='2.4' fill='%231b100b'/%3E%3Ccircle cx='11' cy='21' r='2.4' fill='%231b100b'/%3E%3C/svg%3E" />
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-    <symbol id="logo" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#2df5a0"/><path d="M9 8h8.5a5.5 5.5 0 0 1 0 11H14v5H9z" fill="#04130c"/><circle cx="17" cy="13.5" r="2" fill="#2df5a0"/></symbol>
-    <symbol id="i-gm" viewBox="0 0 24 24"><path d="M12 3l2.2 5.2L20 9l-4.3 3.9L17 19l-5-3-5 3 1.3-6.1L4 9l5.8-.8z" fill="currentColor"/></symbol>
+    <symbol id="mark" viewBox="0 0 28 28"><rect x="2.5" y="2.5" width="23" height="23" rx="6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9.5" cy="9.5" r="2" fill="currentColor"/><circle cx="18.5" cy="18.5" r="2" fill="currentColor"/><circle cx="14" cy="14" r="2" fill="currentColor"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></symbol>
   </svg>
 
-  <!-- 입장 화면 -->
+  <!-- 입장 -->
   <main id="join-screen" class="join">
-    <div class="glow" aria-hidden="true"></div>
-    <div class="join-inner">
-      <div class="brand">
-        <svg class="logo-mark" aria-hidden="true"><use href="#logo"/></svg>
-        <h1>PARTY <em>CHAT</em></h1>
-        <p>같은 방 비밀번호로 모여, 함께 한 편의 이야기를 써요.</p>
+    <section class="join-intro">
+      <a class="wordmark" href="./"><svg class="mark"><use href="#mark"/></svg>파티챗</a>
+      <h1>모여 앉아,<br />한 이야기를 <em>같이</em> 씁니다.</h1>
+      <p class="lede">각자 자기 캐릭터의 행동을 적으면 진행자가 모두의 행동을 엮어 다음 장면을 씁니다. 친구가 없어도 괜찮아요. AI 동료가 빈자리를 채워 줘요.</p>
+      <div class="sample" aria-hidden="true">
+        <div class="acts">
+          <div class="act" style="--c:#d9825b"><div class="who">아렌</div><div class="said">검 손잡이에 손을 얹고 문을 민다</div></div>
+          <div class="act" style="--c:#6fa7b8"><div class="who">세라 <span class="tag ai">AI</span></div><div class="said">“잠깐. 바닥에 발자국이 새로 났어.”</div></div>
+        </div>
+        <p>문이 삐걱이며 열리자 안쪽의 촛불이 일제히 흔들렸다. <span class="dlg">“이 시간에 손님이라니.”</span> 등불을 든 노인이 두 사람을 번갈아 보았다.</p>
       </div>
-      <form id="join-form" class="join-card" autocomplete="off">
-        <label class="field" id="access-field" hidden>
-          <span>입장 비밀번호</span>
-          <input id="j-access" type="password" placeholder="서버 관리자가 정한 비밀번호" />
-        </label>
-        <label class="field">
-          <span>방 비밀번호</span>
-          <input id="j-room" type="password" minlength="4" maxlength="64" required placeholder="4자 이상 · 친구들과 똑같이" />
-        </label>
-        <label class="field">
-          <span>닉네임</span>
-          <input id="j-name" type="text" maxlength="20" required placeholder="예: 민수" />
-        </label>
-        <label class="field">
-          <span>내 캐릭터 <small>선택</small></span>
-          <textarea id="j-persona" maxlength="600" rows="3" placeholder="예: 아렌 — 몰락한 왕국의 젊은 기사. 말수가 적고 검술에 능함."></textarea>
-        </label>
-        <p id="join-error" class="error" role="alert"></p>
-        <button type="submit" class="btn primary big" id="join-btn">입장하기</button>
-        <span id="mock-badge" class="chip gold mock-badge" hidden>테스트 모드 · AI 호출 없음</span>
-      </form>
-      <div class="features">
-        <span class="chip">최대 5인</span>
-        <span class="chip">실시간 스트리밍</span>
-        <span class="chip">모델 · 출력량 선택</span>
-        <span class="chip">기록 저장</span>
+      <p class="foot">혼자서도, 둘이서도, 다섯이서도.</p>
+    </section>
+
+    <form id="join-form" class="join-form" autocomplete="off">
+      <h2>어떻게 놀까요?</h2>
+      <div class="modes" role="radiogroup">
+        <label class="mode"><input type="radio" name="preset" value="solo" checked /><span><b>혼자 하기</b><small>나와 AI 동료 둘이 한 파티가 돼요</small><i>1 + AI 2</i></span></label>
+        <label class="mode"><input type="radio" name="preset" value="duo" /><span><b>둘이서</b><small>친구 한 명과 AI 동료 둘</small><i>2 + AI 2</i></span></label>
+        <label class="mode"><input type="radio" name="preset" value="party" /><span><b>여럿이서</b><small>사람끼리만, 최대 다섯 명</small><i>2–5</i></span></label>
+        <label class="mode"><input type="radio" name="preset" value="join" /><span><b>친구 방에 들어가기</b><small>친구에게 받은 방 코드가 있어요</small><i></i></span></label>
       </div>
-    </div>
+      <label class="field" id="access-field" hidden>
+        <span>입장 비밀번호 <small>서버 관리자에게 받은 것</small></span>
+        <input id="j-access" type="password" />
+      </label>
+      <label class="field">
+        <span id="room-label">방 코드 <small>친구에게 알려 줄 코드</small></span>
+        <span class="row-input">
+          <input id="j-room" type="text" minlength="4" maxlength="64" required spellcheck="false" />
+          <button type="button" class="btn" id="room-random">새로 만들기</button>
+        </span>
+      </label>
+      <label class="field">
+        <span>닉네임</span>
+        <input id="j-name" type="text" maxlength="20" required placeholder="민수" />
+      </label>
+      <label class="field">
+        <span>내 캐릭터 <small>안 적어도 돼요</small></span>
+        <textarea id="j-persona" maxlength="600" rows="3" placeholder="아렌. 몰락한 왕국의 젊은 기사. 말수가 적고 검을 잘 쓴다."></textarea>
+      </label>
+      <p id="join-error" class="error" role="alert"></p>
+      <button type="submit" class="btn primary lg" id="join-btn">방 만들기</button>
+      <p id="mock-note" class="mock-note" hidden>테스트 모드로 실행 중이에요. AI를 실제로 부르지 않고 미리 적힌 글로 대신해요.</p>
+    </form>
   </main>
 
-  <!-- 방 화면 -->
+  <!-- 방 -->
   <div id="app" class="app" hidden>
-    <header class="top">
-      <button class="btn ghost sm top-btn party" data-sheet="side" aria-label="파티 열기">파티 <b id="party-count-top">0</b></button>
-      <a class="logo" href="#" aria-label="PARTY CHAT">
-        <svg aria-hidden="true"><use href="#logo"/></svg><span>PARTY CHAT</span>
-      </a>
-      <div class="top-center">
-        <div id="top-pill" class="pill"><i></i><b id="top-title">파티챗</b><span class="state" id="top-state"></span></div>
-      </div>
-      <div class="top-right">
-        <button class="btn ghost sm top-btn menu" data-sheet="rail" aria-label="메뉴 열기">메뉴<span id="menu-dot" class="chip red" hidden>N</span></button>
+    <header class="bar">
+      <a class="wordmark" href="./" title="파티챗"><svg class="mark"><use href="#mark"/></svg><span>파티챗</span></a>
+      <i class="sep"></i>
+      <div class="bar-title"><b id="room-title">이름 없는 모험</b><span id="room-sub"></span></div>
+      <span id="live" class="live"><i></i><span class="txt" id="live-text">대기 중</span></span>
+      <div class="bar-btns">
+        <button class="btn quiet sm" id="help-btn" title="단축키와 명령어 (Ctrl+/)"><svg class="icon"><use href="#i-key"/></svg></button>
+        <button class="btn quiet sm" id="theme-btn" title="밤/낮 바꾸기"><svg class="icon"><use id="theme-icon" href="#i-sun"/></svg></button>
+        <button class="btn quiet sm menu-btn" id="menu-btn" title="파티 · 잡담 · 설정"><svg class="icon"><use href="#i-menu"/></svg><i class="dot" id="menu-dot" hidden></i></button>
       </div>
     </header>
 
-    <aside class="side" aria-label="파티">
-      <section class="room-card">
-        <div class="eyebrow">NOW PLAYING</div>
-        <h2 id="room-title">새 파티챗</h2>
-        <div class="chips" id="room-chips"></div>
-      </section>
-      <div class="side-title"><span>파티원</span><b id="party-count">0/5</b></div>
-      <ul id="member-list" class="members"></ul>
-      <button class="btn sm" id="profile-btn">내 프로필 수정</button>
-    </aside>
-
-    <main class="stage">
-      <section id="feed" class="feed" aria-live="polite"><div class="feed-inner" id="feed-inner"></div></section>
-      <button id="jump-btn" class="jump" hidden>↓ 최신 장면으로</button>
-      <footer class="dock" id="dock">
-        <div class="dock-inner">
-          <div id="restore-banner" class="banner" hidden>
-            <span>이 기기에 이 방의 이전 이야기 백업이 있어요.</span>
-            <button id="restore-yes" class="btn primary sm">복원</button>
-            <button id="restore-no" class="btn sm">무시</button>
-          </div>
-          <div id="party-bar" class="party-bar"></div>
-          <div id="host-tools" class="host-tools" hidden>
-            <span class="label">HOST</span>
-            <button id="advance-btn" class="btn sm primary">▶ 진행</button>
-            <button id="regen-btn" class="btn sm">↻ 다시 쓰기</button>
-            <button id="undo-btn" class="btn sm">↶ 되돌리기</button>
-            <button id="stop-btn" class="btn sm danger" hidden>■ 중지</button>
-          </div>
-          <form id="action-form" class="console">
-            <textarea id="action-input" rows="2" maxlength="2000" placeholder="내 캐릭터의 행동을 입력하세요"></textarea>
-            <div class="console-row">
-              <div class="seg" role="radiogroup" aria-label="입력 종류">
-                <label><input type="radio" name="kind" value="act" checked /><span>행동</span></label>
-                <label><input type="radio" name="kind" value="say" /><span>대사</span></label>
+    <div class="main">
+      <section class="story-col">
+        <div id="feed" class="feed" aria-live="polite"><div class="feed-inner" id="feed-inner"></div></div>
+        <button id="jump-btn" class="jump" hidden>새 장면 보기 ↓</button>
+        <footer class="dock" id="dock">
+          <div class="dock-inner">
+            <div id="restore-banner" class="banner" hidden>
+              <span>이 기기에 이 방에서 쓰던 이야기가 남아 있어요.</span>
+              <button id="restore-yes" class="btn primary sm">이어서 하기</button>
+              <button id="restore-no" class="btn sm">새로 시작</button>
+            </div>
+            <div id="roster" class="roster"></div>
+            <div id="palette" class="palette" role="listbox" hidden></div>
+            <form id="action-form" class="box">
+              <div class="box-top">
+                <div class="kind" role="radiogroup" aria-label="입력 종류">
+                  <label><input type="radio" name="kind" value="act" checked /><span>행동</span></label>
+                  <label><input type="radio" name="kind" value="say" /><span>대사</span></label>
+                </div>
+                <span class="hint"><kbd>/</kbd> 명령어 · <kbd>;</kbd> 내 단축어</span>
               </div>
-              <span class="grow"></span>
-              <button type="button" id="unsubmit-btn" class="btn ghost sm" hidden>제출 취소</button>
-              <button type="button" id="pass-btn" class="btn sm">스킵</button>
-              <button type="submit" id="submit-btn" class="btn sm primary">제출</button>
+              <textarea id="action-input" rows="2" maxlength="2000" placeholder="무엇을 할까요?"></textarea>
+              <div class="box-foot">
+                <div class="snips" id="snips"></div>
+                <button type="button" id="pass-btn" class="btn quiet sm">이번엔 지켜보기</button>
+                <button type="submit" id="submit-btn" class="btn primary sm">내기</button>
+              </div>
+            </form>
+            <div class="under">
+              <span id="status" class="status"></span>
+              <span id="host-line" class="host-line" hidden>
+                <button class="link accent" id="advance-btn">지금 진행</button>
+                <button class="link" id="regen-btn">다시 쓰기</button>
+                <button class="link" id="undo-btn">되돌리기</button>
+                <button class="link danger" id="stop-btn" hidden>멈추기</button>
+              </span>
+              <button class="link" id="unsubmit-btn" hidden>낸 것 고치기</button>
             </div>
+          </div>
+        </footer>
+      </section>
+
+      <aside class="side" aria-label="파티와 설정">
+        <nav class="tabs">
+          <button data-tab="party" class="on">파티</button>
+          <button data-tab="chat">잡담<i class="dot" id="chat-dot" hidden></i></button>
+          <button data-tab="settings">설정</button>
+          <button data-tab="records">기록</button>
+          <button class="btn quiet sm close" id="side-close" aria-label="닫기">닫기</button>
+        </nav>
+
+        <section data-pane="party" class="pane on">
+          <div class="invite">
+            <div><small>방 코드</small><b id="invite-code">••••</b></div>
+            <button class="btn sm" id="copy-invite">초대 문구 복사</button>
+          </div>
+          <ul id="people" class="people"></ul>
+          <button class="btn sm" id="profile-btn">내 캐릭터 고치기</button>
+        </section>
+
+        <section data-pane="chat" class="pane chat-pane">
+          <div id="ooc-list" class="ooc-list"><p class="ooc-empty">진행자는 못 보는 우리끼리 대화방이에요.</p></div>
+          <form id="ooc-form" class="ooc-form">
+            <input id="ooc-input" type="text" maxlength="500" placeholder="한마디" />
+            <button type="submit" class="btn">보내기</button>
           </form>
-          <p id="status-line" class="status-line"></p>
-        </div>
-      </footer>
-    </main>
+        </section>
 
-    <aside class="rail" aria-label="잡담과 설정">
-      <nav class="rail-tabs">
-        <button data-tab="chat" class="on">잡담<i id="chat-dot" class="dot" hidden></i></button>
-        <button data-tab="settings">설정</button>
-        <button data-tab="records">기록</button>
-        <button class="rail-close btn ghost sm" data-sheet="rail" aria-label="닫기">✕</button>
-      </nav>
+        <section data-pane="settings" class="pane">
+          <p id="settings-readonly" class="note" hidden>설정은 방장만 바꿀 수 있어요. 지금 값은 볼 수 있어요.</p>
+          <form id="settings-form" class="form">
+            <label class="field"><span>방 이름</span><input type="text" name="title" maxlength="40" /></label>
+            <label class="field"><span>세계관과 등장인물</span>
+              <textarea name="systemPrompt" rows="9" maxlength="30000" placeholder="어떤 세계인지, 어떤 인물이 나오는지, 분위기와 말투는 어떤지 자유롭게 적어 주세요."></textarea>
+            </label>
+            <label class="field"><span>첫 장면 <small>비워 두면 첫 턴부터 시작해요</small></span>
+              <textarea name="opening" rows="5" maxlength="12000"></textarea>
+            </label>
+            <label class="field"><span>기억 메모 <small>진행자가 항상 기억할 것</small></span>
+              <textarea name="memo" rows="3" maxlength="8000" placeholder="리나는 아직 아렌의 정체를 모른다. 2턴에서 은 열쇠를 얻었다."></textarea>
+            </label>
 
-      <section data-pane="chat" class="pane chat-pane on">
-        <div id="ooc-list" class="ooc-list"><div class="ooc-empty">AI에게 전달되지 않는 파티원끼리의 잡담방이에요.</div></div>
-        <form id="ooc-form" class="ooc-form">
-          <input id="ooc-input" type="text" maxlength="500" placeholder="잡담 보내기" />
-          <button type="submit" class="btn primary">전송</button>
-        </form>
-      </section>
-
-      <section data-pane="settings" class="pane">
-        <p id="settings-readonly" class="readonly-note" hidden>방장만 설정을 바꿀 수 있어요.</p>
-        <form id="settings-form" class="form">
-          <label class="field"><span>방 제목</span><input type="text" name="title" maxlength="40" /></label>
-          <label class="field"><span>세계관 · 캐릭터 프롬프트</span>
-            <textarea name="systemPrompt" rows="9" maxlength="30000" placeholder="세계관, 등장인물(NPC), 말투, 분위기, 규칙 등을 자유롭게 적어 주세요."></textarea>
-          </label>
-          <label class="field"><span>오프닝 장면 <small>선택 · 비우면 첫 턴부터 시작</small></span>
-            <textarea name="opening" rows="5" maxlength="12000" placeholder="이야기의 첫 장면"></textarea>
-          </label>
-          <label class="field"><span>기억 메모 <small>AI가 항상 기억할 내용</small></span>
-            <textarea name="memo" rows="3" maxlength="8000" placeholder="예: 리나는 아렌의 정체를 아직 모름. 2턴에서 은빛 열쇠를 얻음."></textarea>
-          </label>
-          <div class="field"><span>모델</span><div class="models" id="model-list"></div></div>
-          <div class="field"><span>출력량</span><div class="seg" id="seg-length"></div></div>
-          <div class="field"><span>생각 깊이</span><div class="seg" id="seg-effort"></div></div>
-          <div class="field"><span>진행 방식</span>
-            <div class="seg">
-              <label><input type="radio" name="mode" value="all" /><span>전원 제출 시 자동</span></label>
-              <label><input type="radio" name="mode" value="host" /><span>방장이 진행</span></label>
+            <div class="field">
+              <div class="sub-head"><span>AI 동료</span><button type="button" class="link accent" id="comp-add">한 명 더</button></div>
+              <div id="comp-list" class="comp-list"></div>
+              <p class="hint">AI 동료는 사람 파티원이 모두 낸 뒤에 차례로 행동해요.</p>
             </div>
-          </div>
-          <div class="field"><span>최대 인원</span>
-            <div class="seg">
-              <label><input type="radio" name="maxPlayers" value="2" /><span>2</span></label>
-              <label><input type="radio" name="maxPlayers" value="3" /><span>3</span></label>
-              <label><input type="radio" name="maxPlayers" value="4" /><span>4</span></label>
-              <label><input type="radio" name="maxPlayers" value="5" /><span>5</span></label>
-            </div>
-          </div>
-          <label class="field"><span>기억할 턴 수 <small>줄이면 비용이 줄어요</small></span>
-            <select name="historyTurns">
-              <option value="0">전체</option>
-              <option value="10">최근 10턴</option>
-              <option value="20">최근 20턴</option>
-              <option value="40">최근 40턴</option>
-              <option value="80">최근 80턴</option>
-            </select>
-          </label>
-          <div class="save-bar" id="save-bar"><button type="submit" class="btn primary wide" id="settings-save">설정 저장</button></div>
-        </form>
-      </section>
 
-      <section data-pane="records" class="pane">
-        <div class="rec-list">
-          <button class="rec" id="export-json">
-            <svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/></svg>
-            <span><b>이야기 저장</b><small>.json · 나중에 불러올 수 있어요</small></span>
-          </button>
-          <button class="rec" id="export-txt">
-            <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6"/></svg>
-            <span><b>텍스트로 저장</b><small>.txt · 읽기용</small></span>
-          </button>
-          <label class="rec host-only">
-            <svg viewBox="0 0 24 24"><path d="M12 20V9m0 0-4 4m4-4 4 4M5 5h14"/></svg>
-            <span><b>저장한 이야기 불러오기</b><small>.json 파일 선택</small></span>
-            <input id="import-file" type="file" accept="application/json,.json" />
-          </label>
-          <button class="rec danger host-only" id="reset-btn">
-            <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8M4 4v4h4"/></svg>
-            <span><b>처음부터 다시 시작</b><small>이야기만 지우고 설정은 유지</small></span>
-          </button>
-        </div>
-        <p class="info-box">서버가 재시작되면 방 기록이 사라질 수 있어요. 이야기는 이 기기에도 자동으로 백업되고, 같은 방에 다시 들어오면 방장이 복원할 수 있어요.</p>
-      </section>
-    </aside>
+            <div class="field"><span>모델</span><div class="models" id="model-list"></div></div>
+            <div class="field"><span>장면 길이</span><div class="choice" id="choice-length"></div></div>
+            <div class="field"><span>진행자의 고민 정도 <small>깊을수록 느려요</small></span><div class="choice" id="choice-effort"></div></div>
+            <div class="field"><span>다음 장면으로 넘어가는 때</span>
+              <div class="choice">
+                <label><input type="radio" name="mode" value="all" /><span>모두 냈을 때</span></label>
+                <label><input type="radio" name="mode" value="host" /><span>방장이 넘길 때</span></label>
+              </div>
+            </div>
+            <div class="field"><span>사람 인원</span>
+              <div class="choice">
+                <label><input type="radio" name="maxPlayers" value="1" /><span>1</span></label>
+                <label><input type="radio" name="maxPlayers" value="2" /><span>2</span></label>
+                <label><input type="radio" name="maxPlayers" value="3" /><span>3</span></label>
+                <label><input type="radio" name="maxPlayers" value="4" /><span>4</span></label>
+                <label><input type="radio" name="maxPlayers" value="5" /><span>5</span></label>
+              </div>
+            </div>
+            <label class="field"><span>기억할 분량 <small>줄이면 비용이 줄어요</small></span>
+              <select name="historyTurns">
+                <option value="0">처음부터 전부</option>
+                <option value="10">최근 10턴</option>
+                <option value="20">최근 20턴</option>
+                <option value="40">최근 40턴</option>
+                <option value="80">최근 80턴</option>
+              </select>
+            </label>
+            <div class="save-bar" id="save-bar"><button type="submit" class="btn primary block">저장</button></div>
+          </form>
+        </section>
+
+        <section data-pane="records" class="pane">
+          <div class="records">
+            <button class="record" id="export-json"><b>파일로 저장</b><small>.json · 나중에 이어서</small></button>
+            <button class="record" id="export-txt"><b>글로 내보내기</b><small>.txt · 읽기용</small></button>
+            <label class="record host-only"><b>저장한 파일 불러오기</b><small>.json</small><input id="import-file" type="file" accept="application/json,.json" /></label>
+            <button class="record danger host-only" id="reset-btn"><b>처음부터 다시</b><small>설정은 그대로</small></button>
+          </div>
+          <p class="hint">서버가 다시 켜지면 방 기록이 사라질 수 있어요. 대신 이야기는 이 기기에도 저장돼서, 같은 방 코드로 다시 들어오면 방장이 이어서 할 수 있어요.</p>
+        </section>
+      </aside>
+    </div>
     <div class="scrim" id="scrim"></div>
   </div>
 
   <dialog id="profile-modal" class="modal">
-    <form method="dialog" id="profile-form">
-      <h3>내 프로필</h3>
+    <form method="dialog" class="modal-in" id="profile-form">
+      <h3>내 캐릭터</h3>
       <label class="field"><span>닉네임</span><input type="text" id="p-name" maxlength="20" /></label>
-      <label class="field"><span>내 캐릭터</span><textarea id="p-persona" maxlength="600" rows="5"></textarea></label>
+      <label class="field"><span>캐릭터 설명</span><textarea id="p-persona" maxlength="600" rows="5"></textarea></label>
       <div class="modal-actions">
-        <button type="button" class="btn" id="profile-cancel">취소</button>
+        <button type="button" class="btn" data-close>취소</button>
         <button type="submit" class="btn primary">저장</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="snip-modal" class="modal">
+    <form method="dialog" class="modal-in" id="snip-form">
+      <h3>내 단축어</h3>
+      <p class="hint">입력창에 <kbd>;</kbd>와 이름을 적고 띄어쓰면 긴 문장으로 바뀌어요. 이 기기에만 저장돼요.</p>
+      <div class="snip-rows" id="snip-rows"></div>
+      <button type="button" class="link accent" id="snip-add" style="align-self:flex-start">단축어 추가</button>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close>취소</button>
+        <button type="submit" class="btn primary">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="help-modal" class="modal">
+    <div class="modal-in">
+      <h3>단축키와 명령어</h3>
+      <table class="keys" id="help-table"></table>
+      <div class="modal-actions"><button type="button" class="btn" data-close>닫기</button></div>
+    </div>
   </dialog>
 
   <div id="toast" class="toast" role="status"></div>
