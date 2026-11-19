@@ -8,17 +8,19 @@
   <script>
     try { const t = localStorage.getItem("pc-theme"); if (t) document.documentElement.dataset.theme = t; } catch {}
   </script>
-  <meta name="theme-color" content="#161412" />
+  <meta name="theme-color" content="#0e1320" />
   <link rel="stylesheet" href="fonts/pretendard/pretendardvariable-dynamic-subset.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" />
   <link rel="stylesheet" href="style.css" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='3' width='26' height='26' rx='7' fill='%23e5774b'/%3E%3Ccircle cx='11' cy='11' r='2.4' fill='%231b100b'/%3E%3Ccircle cx='21' cy='21' r='2.4' fill='%231b100b'/%3E%3Ccircle cx='21' cy='11' r='2.4' fill='%231b100b'/%3E%3Ccircle cx='11' cy='21' r='2.4' fill='%231b100b'/%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M14 6H50A10 10 0 0 1 60 16V40A10 10 0 0 1 50 50H26L14 60V50A10 10 0 0 1 4 40V16A10 10 0 0 1 14 6Z' fill='%2324457f'/%3E%3Cpath d='M18 18H46M18 38H46M26 18V38M38 18V38' fill='none' stroke='%23fff' stroke-width='5.5' stroke-linecap='round'/%3E%3C/svg%3E" />
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-    <symbol id="mark" viewBox="0 0 28 28"><rect x="2.5" y="2.5" width="23" height="23" rx="6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9.5" cy="9.5" r="2" fill="currentColor"/><circle cx="18.5" cy="18.5" r="2" fill="currentColor"/><circle cx="14" cy="14" r="2" fill="currentColor"/></symbol>
+    <symbol id="mark" viewBox="0 0 64 64"><path d="M14 6H50A10 10 0 0 1 60 16V40A10 10 0 0 1 50 50H26L14 60V50A10 10 0 0 1 4 40V16A10 10 0 0 1 14 6Z" style="fill:var(--accent)"/><path d="M18 18H46M18 38H46M26 18V38M38 18V38" fill="none" stroke-width="5.5" stroke-linecap="round" style="stroke:var(--accent-ink)"/></symbol>
+    <!-- 파티챗 로고타입: 파의 ㅏ 획이 티의 ㅌ으로 이어진다 (함께). 챗의 점은 단청 청록. -->
+    <symbol id="logotype" viewBox="-6 -8 340 116"><g fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18H58M6 82H58M22 18V82M42 18V82M78 6V94"/><path d="M78 50H168" style="stroke:var(--accent)"/><path d="M124 18H172M124 18V82M124 82H174M196 6V94"/><path d="M256 2V6" style="stroke:var(--teal)"/><path d="M236 18H276M256 18L236 48M256 18L276 48M294 4V58M320 4V58M294 31H320M278 68L254 96M278 68L302 96"/></g></symbol>
     <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
@@ -28,13 +30,16 @@
   <!-- 입장 -->
   <main id="join-screen" class="join">
     <section class="join-intro">
-      <a class="wordmark" href="./"><svg class="mark"><use href="#mark"/></svg>파티챗</a>
-      <h1>모여 앉아,<br />한 이야기를 <em>같이</em> 씁니다.</h1>
+      <div class="hero">
+        <h1><svg class="hero-logo" role="img" aria-label="파티챗"><use href="#logotype"/></svg></h1>
+        <svg class="band" aria-hidden="true"><defs><pattern id="noemun" width="30" height="14" patternUnits="userSpaceOnUse"><path d="M3 12V2H14V9H7V5H10.5" fill="none" stroke-width="1.6" stroke-linecap="square" style="stroke:var(--accent)"/><path d="M23 3l4 4-4 4-4-4z" style="fill:var(--teal)"/></pattern></defs><rect width="100%" height="14" fill="url(#noemun)"/></svg>
+        <p class="hero-sub">모여 앉아 <b>함께</b> 쓰는 이야기</p>
+      </div>
       <p class="lede">각자 자기 캐릭터의 행동을 적으면 진행자가 모두의 행동을 엮어 다음 장면을 씁니다. 친구가 없어도 괜찮아요. AI 동료가 빈자리를 채워 줘요.</p>
       <div class="sample" aria-hidden="true">
         <div class="acts">
-          <div class="act" style="--c:#d9825b"><div class="who">아렌</div><div class="said">검 손잡이에 손을 얹고 문을 민다</div></div>
-          <div class="act" style="--c:#6fa7b8"><div class="who">세라 <span class="tag ai">AI</span></div><div class="said">“잠깐. 바닥에 발자국이 새로 났어.”</div></div>
+          <div class="act" style="--c:#7fa8e0"><div class="who">아렌</div><div class="said">검 손잡이에 손을 얹고 문을 민다</div></div>
+          <div class="act" style="--c:#5fc0b5"><div class="who">세라 <span class="tag ai">AI</span></div><div class="said">“잠깐. 바닥에 발자국이 새로 났어.”</div></div>
         </div>
         <p>문이 삐걱이며 열리자 안쪽의 촛불이 일제히 흔들렸다. <span class="dlg">“이 시간에 손님이라니.”</span> 등불을 든 노인이 두 사람을 번갈아 보았다.</p>
       </div>
@@ -77,7 +82,7 @@
   <!-- 방 -->
   <div id="app" class="app" hidden>
     <header class="bar">
-      <a class="wordmark" href="./" title="파티챗"><svg class="mark"><use href="#mark"/></svg><span>파티챗</span></a>
+      <a class="wordmark" href="./" title="파티챗" aria-label="파티챗"><svg class="mark"><use href="#mark"/></svg><svg class="logotype" aria-hidden="true"><use href="#logotype"/></svg></a>
       <i class="sep"></i>
       <div class="bar-title"><b id="room-title">이름 없는 모험</b><span id="room-sub"></span></div>
       <span id="live" class="live"><i></i><span class="txt" id="live-text">대기 중</span></span>

@@ -1,23 +1,24 @@
 /* 파티챗
    밤(기본) / 낮 두 가지 테마. 색은 아래 토큰만 바꿔서 쓴다. */
 :root {
-  --bg: #161412;
-  --surface: #1d1b18;
-  --raised: #27241f;
-  --line: #34302a;
-  --line-soft: #2a2723;
-  --text: #ede8df;
-  --soft: #cdc5b8;
-  --muted: #958c7f;
-  --faint: #6d655b;
-  --accent: #e5774b;
-  --accent-ink: #1b100b;
-  --accent-soft: rgba(229, 119, 75, 0.13);
-  --ok: #9cbf7a;
+  --bg: #0e1320;
+  --surface: #141b2a;
+  --raised: #1d2638;
+  --line: #2a3448;
+  --line-soft: #1f2838;
+  --text: #e6e9f0;
+  --soft: #c0c8d6;
+  --muted: #8590a6;
+  --faint: #5d6880;
+  --accent: #6aa6e0;
+  --accent-ink: #0b1422;
+  --accent-soft: rgba(106, 166, 224, 0.14);
+  --teal: #4fb3a9;
+  --ok: #5fbfa8;
   --warn: #e0b25a;
-  --bad: #e46a5e;
-  --bad-soft: rgba(228, 106, 94, 0.13);
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --bad: #e46a6a;
+  --bad-soft: rgba(228, 106, 106, 0.13);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   --ui: 'Pretendard Variable', Pretendard, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
   --story: 'Gowun Batang', 'Noto Serif KR', 'Nanum Myeongjo', serif;
   --gl: max(16px, env(safe-area-inset-left, 0px));
@@ -26,23 +27,24 @@
   color-scheme: dark;
 }
 :root[data-theme='light'] {
-  --bg: #f3efe7;
-  --surface: #fbf9f4;
-  --raised: #ebe5da;
-  --line: #d9d0c2;
-  --line-soft: #e5ded2;
-  --text: #25211c;
-  --soft: #474037;
-  --muted: #7a7266;
-  --faint: #a39a8c;
-  --accent: #c2562d;
+  --bg: #eef1f6;
+  --surface: #f8f9fc;
+  --raised: #e2e7ef;
+  --line: #ccd4e0;
+  --line-soft: #dde3ec;
+  --text: #151b2a;
+  --soft: #364056;
+  --muted: #636d86;
+  --faint: #98a1b5;
+  --accent: #24457f;
   --accent-ink: #ffffff;
-  --accent-soft: rgba(194, 86, 45, 0.1);
-  --ok: #5c8838;
-  --warn: #a5741a;
-  --bad: #b8433a;
-  --bad-soft: rgba(184, 67, 58, 0.09);
-  --shadow: 0 10px 30px rgba(60, 45, 30, 0.14);
+  --accent-soft: rgba(36, 69, 127, 0.09);
+  --teal: #1f7f78;
+  --ok: #1f7f78;
+  --warn: #9a6b12;
+  --bad: #b73a3a;
+  --bad-soft: rgba(183, 58, 58, 0.09);
+  --shadow: 0 10px 30px rgba(20, 30, 55, 0.14);
   color-scheme: light;
 }
 
@@ -105,15 +107,19 @@ input:disabled, select:disabled, textarea:disabled { opacity: 0.65; }
 .choice input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; }
 .choice input:disabled + span { cursor: default; }
 
-.mark { width: 26px; height: 26px; flex: none; color: var(--accent); }
-.wordmark { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 18px; letter-spacing: -0.03em; text-decoration: none; }
+.mark { width: 28px; height: 28px; flex: none; }
+.logotype { height: 21px; width: calc(21px * 340 / 116); flex: none; color: var(--text); }
+.wordmark { display: inline-flex; align-items: center; gap: 9px; text-decoration: none; color: var(--text); }
 
 /* ---------- 입장 화면 ---------- */
 .join { min-height: 100%; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
 .join-intro { padding: 48px clamp(24px, 6vw, 88px); display: flex; flex-direction: column; gap: 28px; border-right: 1px solid var(--line-soft); }
-.join-intro .wordmark { font-size: 20px; }
-.join-intro h1 { font: 700 clamp(34px, 4.2vw, 54px)/1.22 var(--story); letter-spacing: -0.02em; margin-top: auto; word-break: keep-all; }
-.join-intro h1 em { font-style: normal; color: var(--accent); }
+.hero { margin-top: auto; display: flex; flex-direction: column; gap: 22px; }
+.hero h1 { margin: 0; line-height: 0; }
+.hero-logo { width: min(420px, 100%); height: auto; aspect-ratio: 340 / 116; color: var(--text); }
+.band { display: block; width: 420px; max-width: 100%; height: 14px; }
+.hero-sub { font: 400 21px/1.5 var(--story); color: var(--soft); letter-spacing: -0.02em; word-break: keep-all; }
+.hero-sub b { font-weight: 700; color: var(--text); }
 .join-intro .lede { max-width: 30em; color: var(--soft); font-size: 16px; line-height: 1.75; word-break: keep-all; }
 .join-intro .sample { max-width: 32em; padding: 18px 0 0; border-top: 1px solid var(--line); margin-bottom: auto; }
 .join-intro .sample p { font: 15px/1.9 var(--story); color: var(--soft); }
@@ -333,7 +339,7 @@ label.record { cursor: pointer; }
 
 /* 모달 */
 .modal { border: 1px solid var(--line); border-radius: 10px; padding: 0; background: var(--surface); color: var(--text); width: min(480px, calc(100vw - 32px)); box-shadow: var(--shadow); }
-.modal::backdrop { background: rgba(10, 8, 6, 0.55); }
+.modal::backdrop { background: rgba(5, 8, 16, 0.6); }
 .modal-in { padding: 22px; display: flex; flex-direction: column; gap: 14px; max-height: 80vh; overflow-y: auto; }
 .modal h3 { font-size: 17px; font-weight: 800; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
@@ -355,7 +361,10 @@ label.record { cursor: pointer; }
 @media (max-width: 1000px) {
   .join { grid-template-columns: 1fr; }
   .join-intro { border-right: 0; border-bottom: 1px solid var(--line-soft); padding: 28px var(--gr) 28px var(--gl); gap: 16px; }
-  .join-intro h1 { margin-top: 8px; font-size: 32px; }
+  .hero { margin-top: 4px; gap: 16px; }
+  .hero-logo { width: 270px; max-width: 100%; }
+  .band { width: 270px; max-width: 100%; }
+  .hero-sub { font-size: 18px; }
   .join-intro .sample, .join-intro .foot { display: none; }
   .join-form { padding: 24px var(--gr) 40px var(--gl); max-width: none; }
 }
@@ -363,13 +372,13 @@ label.record { cursor: pointer; }
   .main { grid-template-columns: minmax(0, 1fr); }
   .side { position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100vw); z-index: 20; transform: translateX(100%); transition: transform 0.2s ease; padding-top: env(safe-area-inset-top, 0px); box-shadow: var(--shadow); }
   .app.show-side .side { transform: none; }
-  .app.show-side .scrim { display: block; position: fixed; inset: 0; z-index: 15; background: rgba(10, 8, 6, 0.5); }
+  .app.show-side .scrim { display: block; position: fixed; inset: 0; z-index: 15; background: rgba(5, 8, 16, 0.55); }
   .tabs .close { display: inline-flex; }
   .menu-btn { display: inline-flex; }
 }
 @media (max-width: 640px) {
   .bar { gap: 10px; }
-  .bar .wordmark span, .bar .sep, .bar-title span { display: none; }
+  .bar .logotype, .bar .sep, .bar-title span { display: none; }
   .live .txt { display: none; }
   .feed-inner { padding: 24px 18px 24px; }
   .story { font-size: 16px; line-height: 1.9; }

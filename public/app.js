@@ -24,7 +24,7 @@ if (!token || !/^[a-f0-9]{32}$/.test(token)) {
 }
 
 // 이름마다 고정 색 (밤/낮 둘 다에서 읽히는 차분한 색)
-const PALETTE = ["#d9825b", "#c9a24a", "#6fa7b8", "#9b8ac9", "#7fae7a", "#c77d99", "#5f97c9", "#b0905e"];
+const PALETTE = ["#7fa8e0", "#5fc0b5", "#d4a35f", "#a993d9", "#e08f8f", "#8fbf6f", "#6cc0e0", "#d9a3c7"];
 function colorOf(name) {
   let h = 0;
   for (const ch of String(name)) h = (h * 31 + ch.codePointAt(0)) >>> 0;
@@ -76,7 +76,7 @@ function applyTheme(t) {
   else delete document.documentElement.dataset.theme;
   const light = document.documentElement.dataset.theme === "light";
   $("theme-icon").setAttribute("href", light ? "#i-moon" : "#i-sun");
-  document.querySelector('meta[name="theme-color"]').content = light ? "#f3efe7" : "#161412";
+  document.querySelector('meta[name="theme-color"]').content = light ? "#eef1f6" : "#0e1320";
 }
 function toggleTheme() {
   const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
